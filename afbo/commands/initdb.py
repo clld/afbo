@@ -32,10 +32,7 @@ def register(parser):  # pragma: no cover
         action=ExistingConfig,
         help="ini file providing app config",
         default=str(PROJECT_DIR / 'development.ini'))
-    parser.add_argument(
-        '--doi',
-        default=None,
-    )
+    parser.add_argument('doi')
     parser.add_argument(
         '--repos',
         default=pathlib.Path(PROJECT_DIR.parent / 'wals-cldf'),
@@ -52,7 +49,7 @@ def run(args):  # pragma: no cover
         stack.enter_context(SessionContext(settings))
 
         with transaction.manager:
-            load(args.repos)
+            load(args)
             cache(args.log)
 
 
@@ -82,7 +79,10 @@ def typed(r, t):  # pragma: no cover
     return r
 
 
-def load(repos):  # pragma: no cover
+def load(args):  # pragma: no cover
+    repos = args.repos
+    pks = collections.defaultdict(list)
+
     def iterrows(core, extended=False):
         res = collections.OrderedDict()
         for row in reader(repos / 'raw' / core, dicts=True):
@@ -91,6 +91,7 @@ def load(repos):  # pragma: no cover
             for row in reader(repos / 'raw' / extended, dicts=True):
                 res[row['pk']].update(row)
         for r in res.values():
+            pks[core.replace('.csv', '')].append(int(r['pk']))
             yield typed(r, core)
 
     for stem, cls in [
@@ -106,8 +107,30 @@ def load(repos):  # pragma: no cover
         ('pairsource', models.PairSource),
     ]:
         for row in iterrows(stem + '.csv'):
+
             DBSession.add(cls(**row))
         DBSession.flush()
+
+    maxpks = {n: max(l) for n, l in pks.items()}
+    common.Dataset.first().update_jsondata(doi=args.doi)
+
+    ids = {}
+    for l in reader(args.repos / 'cldf' / 'languages.csv', dicts=True):
+        if l['Glottocode']:
+            gc = l['Glottocode']
+            identifier = ids.get(gc)
+            if not identifier:
+                maxpks['identifier'] += 1
+                ids[gc] = identifier = common.Identifier(
+                    pk=maxpks['identifier'],
+                    id=gc,
+                    name=gc,
+                    type='glottolog')
+            maxpks['languageidentifier'] += 1
+            DBSession.add(common.LanguageIdentifier(
+                pk=maxpks['languageidentifier'],
+                language=common.Language.get(l['ID']),
+                identifier=identifier))
 
     for row in iterrows('parameter.csv', extended='affixfunction.csv'):
         DBSession.add(models.AffixFunction(**row))
@@ -125,7 +148,7 @@ def load(repos):  # pragma: no cover
         DBSession.flush()
 
 
-def cache(log):
+def cache(log):  # pragma: no cover
     for param in DBSession.query(models.AffixFunction):
         param.representation = len(param.valuesets)
         param.count_borrowed = sum(
