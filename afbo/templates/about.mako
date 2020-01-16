@@ -197,7 +197,7 @@ out of a total of five case markers are borrowed)</li>
     building AfBo, as explicitly noted in the descriptions of
     individual case of affix borrowing. In addition, I am grateful to
     Martin Haspelmath for publishing AfBo as part of the
-    ${h.external_link('http://clld.org', label='Cross-Linguistic Linked Data')}
+    ${h.external_link('https://clld.org', label='Cross-Linguistic Linked Data')}
     project, to Robert Forkel for programming
     the web interface, and to Lena Sell, Lisa Steinbach, and Evgeniya Zhivotova for proofreading.
 </p>
