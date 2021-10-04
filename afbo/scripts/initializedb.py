@@ -1,15 +1,6 @@
-"""
-
-"""
 import json
-import pathlib
-import contextlib
 import collections
 
-import transaction
-from clldutils import db
-from clldutils import clilib
-from clld.scripts.util import SessionContext, ExistingConfig, get_env_and_settings
 from clld.db.meta import DBSession
 from clld.db.models import common
 from clld.lib.bibtex import EntryType
@@ -17,40 +8,6 @@ from csvw.dsv import reader
 
 import afbo
 from afbo import models
-
-PKG_DIR = pathlib.Path(afbo.__file__).parent
-PROJECT_DIR = PKG_DIR.parent
-
-# FIXME:
-# - source.bib - we should import source data from the bib file, because this can be easier
-#   maintained.
-
-
-def register(parser):  # pragma: no cover
-    parser.add_argument(
-        "--config-uri",
-        action=ExistingConfig,
-        help="ini file providing app config",
-        default=str(PROJECT_DIR / 'development.ini'))
-    parser.add_argument('doi')
-    parser.add_argument(
-        '--repos',
-        default=pathlib.Path(PROJECT_DIR.parent / 'wals-cldf'),
-        help='Clone of cldf-datasets/wals',
-        type=clilib.PathType(type='dir'),
-    )
-
-
-def run(args):  # pragma: no cover
-    args.env, settings = get_env_and_settings(args.config_uri)
-
-    with contextlib.ExitStack() as stack:
-        stack.enter_context(db.FreshDB.from_settings(settings, log=args.log))
-        stack.enter_context(SessionContext(settings))
-
-        with transaction.manager:
-            load(args)
-            cache(args.log)
 
 
 def typed(r, t):  # pragma: no cover
@@ -79,7 +36,7 @@ def typed(r, t):  # pragma: no cover
     return r
 
 
-def load(args):  # pragma: no cover
+def main(args):  # pragma: no cover
     repos = args.repos
     pks = collections.defaultdict(list)
 
@@ -148,7 +105,8 @@ def load(args):  # pragma: no cover
         DBSession.flush()
 
 
-def cache(log):  # pragma: no cover
+def prime_cache(args):  # pragma: no cover
+    log = args.log
     for param in DBSession.query(models.AffixFunction):
         param.representation = len(param.valuesets)
         param.count_borrowed = sum(
@@ -161,7 +119,7 @@ def cache(log):  # pragma: no cover
         for i in range(_min, _max + 1):
             colors[i] = color
 
-    for l in DBSession.query(common.Language)\
+    for l in DBSession.query(common.Language) \
             .join(models.Pair, common.Language.pk == models.Pair.recipient_pk):
         l.update_jsondata(color=colors[max(p.count_borrowed for p in l.donor_assocs)])
 

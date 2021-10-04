@@ -18,8 +18,8 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'clld>=7.4',
-        'clldmpg',
+        'clld>=8',
+        'clldmpg>=4.2',
         'sqlalchemy',
         'waitress',
     ],
@@ -42,9 +42,6 @@ setup(
     },
     test_suite="afbo",
     entry_points={
-        'console_scripts': [
-            'afbo-app=afbo.__main__:main',
-        ],
         'paste.app_factory': [
             'main = afbo:main',
         ],
