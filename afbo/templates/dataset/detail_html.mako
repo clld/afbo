@@ -7,20 +7,21 @@
 
 <h2>Welcome to AfBo</h2>
 <p class="lead">
-    AfBo comprises descriptions of 101 cases of affix borrowing, i.e. cases where one
-    language borrowed at least one affix from another language, involving a total of 657
+    AfBo 2.0 comprises descriptions of ${count_pairs} cases of affix borrowing, i.e. cases where one
+    language borrowed at least one affix from another language, involving a total of ${count_borrowed_affixes}
     borrowed affixes. It includes an online interface with descriptions of borrowed
     affixes in terms of their forms and functions, examples of combinations of borrowed
-    affixes with native stems, search functions, maps, and over 230 bibliographical
+    affixes with native stems, search functions, maps, and ${count_sources} bibliographical
     references. The entire database underlying AfBo can be downloaded.
 </p>
 
 <p style="font-size: larger;">
     AfBo was compiled by Frank Seifart between 2007 and 2013 with funding from the
     Max Planck Insititute for Evolutionary Anthropology's Department of Linguistics,
-    led by Bernard Comrie. AfBo is published as part of the
+    led by Bernard Comrie. Revisions and additions leading to AfBo 2.0 were compiled under the
+    responsibility of Frank Seifart and Francesco Gardani. AfBo is published as part of the
     ${h.external_link('https://clld.org', label='Cross-Linguistic Linked Data')}
-    project, led by Martin Haspelmath.
+    initiative.
 </p>
 <p style="font-size: larger;">
     The content of this web site, including the

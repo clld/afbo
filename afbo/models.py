@@ -30,7 +30,6 @@ class Pair(Base, IdNameDescriptionMixin):
     area = Column(Unicode)
     reliability = Column(Unicode)
     int_reliability = Column(Integer)
-    count_interrel = Column(Integer)
     count_borrowed = Column(Integer)
 
     recipient = relationship(

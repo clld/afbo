@@ -3,12 +3,19 @@ from clld.db.models import common
 from clld.cliutil import Data, bibtex2source
 from clld.lib import bibtex
 from nameparser import HumanName
+from pycldf.media import MediaTable
+from clldutils.markup import iter_markdown_sections
 
 import afbo
 from afbo import models
 
-
 def main(args):  # pragma: no cover
+    files = {f.id: f for f in MediaTable(args.cldf)}
+    about = []
+    for i, (level, title, text) in enumerate(iter_markdown_sections(files['about'].read())):
+        if level == 2:
+            about.append((i + 1, title.lstrip('#').strip(), text))
+
     data = Data()
     ds = data.add(
         common.Dataset,
@@ -17,6 +24,7 @@ def main(args):  # pragma: no cover
         domain='afbo.info',
         name=args.cldf.properties['dc:title'],
         description="",
+        contact="frank.seifart@cnrs.fr",
         publisher_name="MPI EVA",
         publisher_place="Leipzig",
         publisher_url="https://www.eva.mpg.de/",
@@ -24,6 +32,7 @@ def main(args):  # pragma: no cover
         jsondata={
             'license_icon': 'cc-by.png',
             'license_name': 'Creative Commons Attribution 4.0 International License',
+            'about': about,
         },
     )
     contrib = common.Contribution(id='afbo')
@@ -34,7 +43,7 @@ def main(args):  # pragma: no cover
     DBSession.add(ds)
 
     for rec in bibtex.Database.from_file(args.cldf.bibpath, lowercase=True):
-        data.add(common.Source, rec.id, _obj=bibtex2source(rec))
+        data.add(common.Source, rec.id, _obj=bibtex2source(rec, sluggify_id=False))
 
     for row in args.cldf.iter_rows('LanguageTable'):
         data.add(common.Language, row['ID'], id=row['ID'], name=row['Name'])
@@ -47,7 +56,7 @@ def main(args):  # pragma: no cover
             models.Pair, row['ID'],
             id=row['ID'],
             name=row['Name'],
-            description=row['Description'],
+            description=files[row['Description']].read(),
             recipient=data['Language'][row['Recipient_ID']],
             donor=data['Language'][row['Donor_ID']],
             count_borrowed=row['Count_Borrowed'],

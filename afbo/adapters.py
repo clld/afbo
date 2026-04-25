@@ -31,7 +31,6 @@ class Matrix(CsvDump):
         ('Donor iso639-3', lambda p: p.donor.iso_code),
         ('Donor genus', lambda p: p.donor.jsondata.get('genus')),
         ('reliability', lambda p: p.reliability),
-        ('number of interrelated affixes', lambda p: p.count_interrel),
         ('number of borrowed affixes', lambda p: p.count_borrowed),
         ('Area', lambda p: p.area),
         ('References', lambda p: ', '.join(s.id for s in p.sources)),

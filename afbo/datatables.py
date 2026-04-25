@@ -79,7 +79,6 @@ class Pairs(DataTable):
             RecipientCol(self, 'recipient', sTitle='Recipient language'),
             DonorCol(self, 'donor', sTitle='Donor language'),
             Col(self, 'count_borrowed', sTitle='Number of borrowed affixes'),
-            Col(self, 'count_interrel', sTitle='Number of interrelated affixes'),
             Col(self, 'area', choices=get_distinct_values(Pair.area)),
             ReliabilityCol(self, 'reliability'),
             LinkCol(self, 'details', model_col=Pair.name),
