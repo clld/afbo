@@ -46,7 +46,15 @@ def main(args):  # pragma: no cover
         data.add(common.Source, rec.id, _obj=bibtex2source(rec, sluggify_id=False))
 
     for row in args.cldf.iter_rows('LanguageTable'):
-        data.add(common.Language, row['ID'], id=row['ID'], name=row['Name'])
+        data.add(
+            common.Language,
+            row['ID'],
+            id=row['ID'],
+            name=row['Name'],
+            latitude=row['Latitude'],
+            longitude=row['Longitude'],
+            jsondata=dict(genus=row['Genus'], family=row['Family'], family_glottocode=row['Family_Glottocode'])
+        )
 
     for row in args.cldf.iter_rows('ParameterTable'):
         data.add(models.AffixFunction, row['ID'], id=row['ID'], name=row['Name'])
@@ -63,6 +71,32 @@ def main(args):  # pragma: no cover
         )
 
     DBSession.flush()
+
+    for row in args.cldf.iter_rows('LanguageTable'):
+        id_ = data['Identifier'].get((row['Glottocode'], 'glottolog'))
+        if not id_:
+            id_ = data.add(
+                common.Identifier,
+                (row['Glottocode'], 'glottolog'),
+                id=row['Glottocode'], type='glottolog')
+        DBSession.add(
+            common.LanguageIdentifier(language_pk=data['Language'][row['ID']].pk, identifier=id_))
+        for iso in row['ISO639P3code']:
+            id_ = data['Identifier'].get((iso, 'iso639-3'))
+            if not id_:
+                id_ = data.add(
+                    common.Identifier,
+                    (iso, 'iso639-3'),
+                    id=iso, type='iso639-3')
+            DBSession.add(
+                common.LanguageIdentifier(language_pk=data['Language'][row['ID']].pk, identifier=id_))
+
+    for row in args.cldf.iter_rows('donor_recipient_pairs.csv'):
+        for srcid in row['Source']:
+            DBSession.add(models.PairSource(
+                source_pk=data['Source'][srcid].pk,
+                pair_pk=data['Pair'][row['ID']].pk,
+            ))
 
     for row in args.cldf.iter_rows('ValueTable'):
         vs = data['ValueSet'].get((row['Language_ID'], row['Parameter_ID']))
@@ -86,7 +120,6 @@ def main(args):  # pragma: no cover
     for stem, cls in [
         ('identifier', common.Identifier),
         ('languageidentifier', common.LanguageIdentifier),
-        ('pairsource', models.PairSource),
     ]:
         pass
 

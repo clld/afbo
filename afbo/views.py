@@ -1,4 +1,5 @@
-from clld_markdown_plugin import markdown
+from clld.web.util import glottolog
+
 
 def about(request):
     #

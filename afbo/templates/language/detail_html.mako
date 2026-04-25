@@ -1,10 +1,17 @@
 <%inherit file="../afbo.mako"/>
 <%namespace name="util" file="../util.mako"/>
 <%! active_menu_item = "pairs" %>
+<%! from clld.web.util import glottolog %>
+
 
 <h2>${ctx.name}</h2>
 
-${util.dl_table(('Genus', ctx.jsondata['genus']), ('Area', ctx.jsondata['macroarea']))}
+<p>
+    from family ${glottolog.link(request, id=ctx.jsondata['family_glottocode'], label=ctx.jsondata['family'])}
+    % if ctx.jsondata['genus']:
+    (${ctx.jsondata['genus']})
+    % endif
+</p>
 
 <% attrs = ['donor', 'recipient'] %>
 % for i, attr in enumerate(attrs):
