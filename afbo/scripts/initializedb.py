@@ -1,108 +1,86 @@
-import json
-import collections
-
 from clld.db.meta import DBSession
 from clld.db.models import common
-from clld.lib.bibtex import EntryType
-from csvw.dsv import reader
+from clld.cliutil import Data, bibtex2source
+from clld.lib import bibtex
+from nameparser import HumanName
 
 import afbo
 from afbo import models
 
 
-def typed(r, t):  # pragma: no cover
-    if 'version' in r:
-        del r['version']
-    for k in r:
-        if k.endswith('_pk') or k == 'pk' or k.endswith('_int'):
-            r[k] = int(r[k]) if r[k] != '' else None
-        elif k == 'jsondata':
-            r[k] = json.loads(r[k]) if r[k] else None
-        elif k in {'latitude', 'longitude'}:
-            r[k] = float(r[k]) if r[k] != '' else None
-        elif k in {'samples_100', 'samples_200'}:
-            r[k] = r[k] == 't'
-
-    if t in {'editor.csv', 'contributioncontributor.csv'}:
-        r['primary'] = r['primary'] == 't'
-        r['ord'] = int(r['ord'])
-    elif t == 'contribution.csv':
-        r['date'] = None
-    elif t == 'value.csv':
-        r['frequency'] = None
-    elif t == 'source.csv':
-        r['bibtex_type'] = r['bibtex_type'] or 'misc'
-        r['bibtex_type'] = EntryType.get(r['bibtex_type'])
-    return r
-
-
 def main(args):  # pragma: no cover
-    repos = args.repos
-    pks = collections.defaultdict(list)
+    data = Data()
+    ds = data.add(
+        common.Dataset,
+        'afbo',
+        id='afbo',
+        domain='afbo.info',
+        name=args.cldf.properties['dc:title'],
+        description="",
+        publisher_name="MPI EVA",
+        publisher_place="Leipzig",
+        publisher_url="https://www.eva.mpg.de/",
+        license="http://creativecommons.org/licenses/by/4.0/",
+        jsondata={
+            'license_icon': 'cc-by.png',
+            'license_name': 'Creative Commons Attribution 4.0 International License',
+        },
+    )
+    contrib = common.Contribution(id='afbo')
+    for i, name in enumerate(args.cldf.properties['dc:creator'].split(' and ')):
+        cid = HumanName(name.strip()).last.lower() + HumanName(name.strip()).first.lower()[0]
+        co = data.add(common.Contributor, cid, id=cid, name=name.strip())
+        common.Editor(dataset=ds, ord=i, contributor=co)
+    DBSession.add(ds)
 
-    def iterrows(core, extended=False):
-        res = collections.OrderedDict()
-        for row in reader(repos / 'raw' / core, dicts=True):
-            res[row['pk']] = row
-        if extended:
-            for row in reader(repos / 'raw' / extended, dicts=True):
-                res[row['pk']].update(row)
-        for r in res.values():
-            pks[core.replace('.csv', '')].append(int(r['pk']))
-            yield typed(r, core)
+    for rec in bibtex.Database.from_file(args.cldf.bibpath, lowercase=True):
+        data.add(common.Source, rec.id, _obj=bibtex2source(rec))
+
+    for row in args.cldf.iter_rows('LanguageTable'):
+        data.add(common.Language, row['ID'], id=row['ID'], name=row['Name'])
+
+    for row in args.cldf.iter_rows('ParameterTable'):
+        data.add(models.AffixFunction, row['ID'], id=row['ID'], name=row['Name'])
+
+    for row in args.cldf.iter_rows('donor_recipient_pairs.csv'):
+        data.add(
+            models.Pair, row['ID'],
+            id=row['ID'],
+            name=row['Name'],
+            description=row['Description'],
+            recipient=data['Language'][row['Recipient_ID']],
+            donor=data['Language'][row['Donor_ID']],
+            count_borrowed=row['Count_Borrowed'],
+        )
+
+    DBSession.flush()
+
+    for row in args.cldf.iter_rows('ValueTable'):
+        vs = data['ValueSet'].get((row['Language_ID'], row['Parameter_ID']))
+        if not vs:
+            vs = data.add(
+                common.ValueSet,
+                (row['Language_ID'], row['Parameter_ID']),
+                id=f"{row['Language_ID']}-{row['Parameter_ID']}",
+                language_pk=data['Language'][row['Language_ID']].pk,
+                parameter_pk=data['AffixFunction'][row['Parameter_ID']].pk,
+                contribution_pk=contrib.pk,
+            )
+        data.add(
+            models.AfboValue, row['ID'],
+            id=row['ID'],
+            name=row['Value'],
+            numeric=int(row['Value']),
+            pair=data['Pair'][row['Pair_ID']],
+            valueset=vs)
 
     for stem, cls in [
-        ('dataset', common.Dataset),
-        ('contributor', common.Contributor),
-        ('contribution', common.Contribution),
-        ('editor', common.Editor),
-        ('source', common.Source),
         ('identifier', common.Identifier),
-        ('language', common.Language),
         ('languageidentifier', common.LanguageIdentifier),
-        ('pair', models.Pair),
         ('pairsource', models.PairSource),
     ]:
-        for row in iterrows(stem + '.csv'):
+        pass
 
-            DBSession.add(cls(**row))
-        DBSession.flush()
-
-    maxpks = {n: max(l) for n, l in pks.items()}
-    common.Dataset.first().update_jsondata(doi=args.doi)
-
-    ids = {}
-    for l in reader(args.repos / 'cldf' / 'languages.csv', dicts=True):
-        if l['Glottocode']:
-            gc = l['Glottocode']
-            identifier = ids.get(gc)
-            if not identifier:
-                maxpks['identifier'] += 1
-                ids[gc] = identifier = common.Identifier(
-                    pk=maxpks['identifier'],
-                    id=gc,
-                    name=gc,
-                    type='glottolog')
-            maxpks['languageidentifier'] += 1
-            DBSession.add(common.LanguageIdentifier(
-                pk=maxpks['languageidentifier'],
-                language=common.Language.get(l['ID']),
-                identifier=identifier))
-
-    for row in iterrows('parameter.csv', extended='affixfunction.csv'):
-        DBSession.add(models.AffixFunction(**row))
-        DBSession.flush()
-
-    for stem, cls in [
-        ('valueset', common.ValueSet),
-    ]:
-        for row in iterrows(stem + '.csv'):
-            DBSession.add(cls(**row))
-        DBSession.flush()
-
-    for row in iterrows('value.csv', extended='waabvalue.csv'):
-        DBSession.add(models.AfboValue(**row))
-        DBSession.flush()
 
 
 def prime_cache(args):  # pragma: no cover
@@ -127,9 +105,9 @@ def prime_cache(args):  # pragma: no cover
         if not l.donor_assocs:
             l.update_jsondata(color='ffffff')
 
-    for p in DBSession.query(models.Pair):
-        for source_id in set(afbo.SOURCE_ID_PATTERN.findall(p.description)):
-            try:
-                p.sources.append(common.Source.get(source_id))
-            except:
-                log.warning('missing source: {0}'.format(source_id))
+    #for p in DBSession.query(models.Pair):
+    #    for source_id in set(afbo.SOURCE_ID_PATTERN.findall(p.description)):
+    #        try:
+    #            p.sources.append(common.Source.get(source_id))
+    #        except:
+    #            log.warning('missing source: {0}'.format(source_id))

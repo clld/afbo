@@ -51,6 +51,7 @@ def main(global_config, **settings):
     settings['sitemaps'] = 'pair parameter source'.split()
     config = Configurator(settings=settings)
     config.include('clldmpg')
+    config.include('clld_markdown_plugin')
     config.registry.registerUtility(AfboMapMarker(), IMapMarker)
     config.register_resource('pair', models.Pair, IPair, with_index=True)
     config.register_menu(
