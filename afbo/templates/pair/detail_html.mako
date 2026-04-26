@@ -13,7 +13,7 @@ ${markdown(request, ctx.description)|n}
 
 <%def name="sidebar()">
     <%util:well>
-        ${util.dl_table(('Recipient language', h.link(request, ctx.recipient)), ('Donor language', h.link(request, ctx.donor)), ('Reliability of borrowed status/affixhood', ctx.reliability), ('Borrowed affixes', ctx.count_borrowed))}
+        ${util.dl_table(('Recipient language', h.link(request, ctx.recipient)), ('Donor language', h.link(request, ctx.donor)), ('Borrowed affixes', ctx.count_borrowed))}
     </%util:well>
     % if len(ctx.recipient.donor_assocs) > 1:
      <%util:well>

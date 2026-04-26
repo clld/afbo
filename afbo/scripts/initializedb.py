@@ -9,6 +9,11 @@ from clldutils.markup import iter_markdown_sections
 import afbo
 from afbo import models
 
+
+def strip_title(t):
+    return '\n'.join(line for line in t.split('\n') if not line.startswith('# ')).strip()
+
+
 def main(args):  # pragma: no cover
     files = {f.id: f for f in MediaTable(args.cldf)}
     about = []
@@ -47,13 +52,14 @@ def main(args):  # pragma: no cover
 
     for row in args.cldf.iter_rows('LanguageTable'):
         data.add(
-            common.Language,
+            models.AfboLanguage,
             row['ID'],
             id=row['ID'],
             name=row['Name'],
             latitude=row['Latitude'],
             longitude=row['Longitude'],
-            jsondata=dict(genus=row['Genus'], family=row['Family'], family_glottocode=row['Family_Glottocode'])
+            family=row['Family'],
+            jsondata=dict(genus=row['Genus'], family_glottocode=row['Family_Glottocode'])
         )
 
     for row in args.cldf.iter_rows('ParameterTable'):
@@ -64,9 +70,10 @@ def main(args):  # pragma: no cover
             models.Pair, row['ID'],
             id=row['ID'],
             name=row['Name'],
-            description=files[row['Description']].read(),
-            recipient=data['Language'][row['Recipient_ID']],
-            donor=data['Language'][row['Donor_ID']],
+            description=strip_title(files[row['Description']].read()),
+            area=row['Macroarea'],
+            recipient=data['AfboLanguage'][row['Recipient_ID']],
+            donor=data['AfboLanguage'][row['Donor_ID']],
             count_borrowed=row['Count_Borrowed'],
         )
 
@@ -80,7 +87,7 @@ def main(args):  # pragma: no cover
                 (row['Glottocode'], 'glottolog'),
                 id=row['Glottocode'], type='glottolog')
         DBSession.add(
-            common.LanguageIdentifier(language_pk=data['Language'][row['ID']].pk, identifier=id_))
+            common.LanguageIdentifier(language_pk=data['AfboLanguage'][row['ID']].pk, identifier=id_))
         for iso in row['ISO639P3code']:
             id_ = data['Identifier'].get((iso, 'iso639-3'))
             if not id_:
@@ -89,7 +96,7 @@ def main(args):  # pragma: no cover
                     (iso, 'iso639-3'),
                     id=iso, type='iso639-3')
             DBSession.add(
-                common.LanguageIdentifier(language_pk=data['Language'][row['ID']].pk, identifier=id_))
+                common.LanguageIdentifier(language_pk=data['AfboLanguage'][row['ID']].pk, identifier=id_))
 
     for row in args.cldf.iter_rows('donor_recipient_pairs.csv'):
         for srcid in row['Source']:
@@ -105,7 +112,7 @@ def main(args):  # pragma: no cover
                 common.ValueSet,
                 (row['Language_ID'], row['Parameter_ID']),
                 id=f"{row['Language_ID']}-{row['Parameter_ID']}",
-                language_pk=data['Language'][row['Language_ID']].pk,
+                language_pk=data['AfboLanguage'][row['Language_ID']].pk,
                 parameter_pk=data['AffixFunction'][row['Parameter_ID']].pk,
                 contribution_pk=contrib.pk,
             )
@@ -117,16 +124,8 @@ def main(args):  # pragma: no cover
             pair=data['Pair'][row['Pair_ID']],
             valueset=vs)
 
-    for stem, cls in [
-        ('identifier', common.Identifier),
-        ('languageidentifier', common.LanguageIdentifier),
-    ]:
-        pass
-
-
 
 def prime_cache(args):  # pragma: no cover
-    log = args.log
     for param in DBSession.query(models.AffixFunction):
         param.representation = len(param.valuesets)
         param.count_borrowed = sum(
@@ -146,10 +145,3 @@ def prime_cache(args):  # pragma: no cover
     for l in DBSession.query(common.Language):
         if not l.donor_assocs:
             l.update_jsondata(color='ffffff')
-
-    #for p in DBSession.query(models.Pair):
-    #    for source_id in set(afbo.SOURCE_ID_PATTERN.findall(p.description)):
-    #        try:
-    #            p.sources.append(common.Source.get(source_id))
-    #        except:
-    #            log.warning('missing source: {0}'.format(source_id))

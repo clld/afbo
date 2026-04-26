@@ -7,7 +7,7 @@
 <h2>${ctx.name}</h2>
 
 <p>
-    from family ${glottolog.link(request, id=ctx.jsondata['family_glottocode'], label=ctx.jsondata['family'])}
+    from family ${glottolog.link(request, id=ctx.jsondata['family_glottocode'], label=ctx.family)}
     % if ctx.jsondata['genus']:
     (${ctx.jsondata['genus']})
     % endif

@@ -10,7 +10,7 @@ import pytest
         ('get_html', '/pairs/15'),
         ('get_html', '/languages'),
         ('get_json', '/languages.geojson'),
-        ('get_json', '/parameters/4.geojson'),
+        ('get_json', '/parameters/adverbializer.geojson'),
         ('get_dt', '/parameters'),
         ('get_dt', '/pairs'),
         ('get_dt', '/sources'),

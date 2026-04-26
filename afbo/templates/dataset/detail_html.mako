@@ -16,13 +16,14 @@
 </p>
 
 <p style="font-size: larger;">
-    AfBo was compiled by Frank Seifart between 2007 and 2013 with funding from the
-    Max Planck Insititute for Evolutionary Anthropology's Department of Linguistics,
+    AfBo 1.0 was compiled by Frank Seifart between 2007 and 2013 with funding from the
+    Max Planck Institute for Evolutionary Anthropology's Department of Linguistics,
     led by Bernard Comrie. Revisions and additions leading to AfBo 2.0 were compiled under the
     responsibility of Frank Seifart and Francesco Gardani. AfBo is published as part of the
     ${h.external_link('https://clld.org', label='Cross-Linguistic Linked Data')}
     initiative.
 </p>
+
 <p style="font-size: larger;">
     The content of this web site, including the
     <a href="${request.route_url('download')}">downloadable database</a>,

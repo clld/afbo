@@ -2,7 +2,8 @@ from sqlalchemy import Integer
 from sqlalchemy.sql.expression import cast
 from sqlalchemy.orm import aliased, joinedload
 
-from clld.db.models.common import Language, Value, Parameter, ValueSet, Source
+from clld.db.meta import DBSession
+from clld.db.models.common import Value, Parameter, ValueSet, Source
 from clld.db.util import icontains, get_distinct_values
 from clld.web.datatables.base import (
     Col, LinkCol, DataTable, filter_number, LinkToMapCol,
@@ -13,7 +14,7 @@ from clld.web.datatables.value import Values
 from clld.web.util.htmllib import HTML
 from clld.web.util.helpers import link
 
-from afbo.models import Pair, AffixFunction, AfboValue
+from afbo.models import Pair, AffixFunction, AfboValue, AfboLanguage
 
 
 class AffixFunctions(Parameters):
@@ -45,6 +46,17 @@ class DonorCol(LinkCol):
         return self.dt.donor.name
 
 
+class DonorFamilyCol(Col):
+    def format(self, item):
+        return item.donor.family
+
+    def search(self, qs):
+        return icontains(self.dt.donor.family, qs)
+
+    def order(self):
+        return self.dt.donor.family
+
+
 class RecipientCol(LinkCol):
     def get_obj(self, item):
         return item.recipient
@@ -56,18 +68,34 @@ class RecipientCol(LinkCol):
         return self.dt.recipient.name
 
 
-class ReliabilityCol(Col):
-    __kw__ = {'choices': ['high', 'mid', 'low']}
+class RecipientFamilyCol(Col):
+    def format(self, item):
+        return item.recipient.family
+
+    def search(self, qs):
+        return icontains(self.dt.recipient.family, qs)
 
     def order(self):
-        return Pair.int_reliability
+        return self.dt.recipient.family
+
+
+def recipient_families():
+    return sorted(set(
+        r[0] for r in
+        DBSession.query(AfboLanguage.family).join(Pair, Pair.recipient_pk == AfboLanguage.pk)))
+
+
+def donor_families():
+    return sorted(set(
+        r[0] for r in
+        DBSession.query(AfboLanguage.family).join(Pair, Pair.donor_pk == AfboLanguage.pk)))
 
 
 class Pairs(DataTable):
     def __init__(self, *args, **kw):
         super(Pairs, self).__init__(*args, **kw)
-        self.donor = aliased(Language)
-        self.recipient = aliased(Language)
+        self.donor = aliased(AfboLanguage)
+        self.recipient = aliased(AfboLanguage)
 
     def base_query(self, query):
         return query\
@@ -77,10 +105,21 @@ class Pairs(DataTable):
     def col_defs(self):
         return [
             RecipientCol(self, 'recipient', sTitle='Recipient language'),
+            RecipientFamilyCol(
+                self,
+                'recipient_family',
+                sTitle='Recipient family',
+                choices=recipient_families(),
+            ),
             DonorCol(self, 'donor', sTitle='Donor language'),
-            Col(self, 'count_borrowed', sTitle='Number of borrowed affixes'),
+            DonorFamilyCol(
+                self,
+                'donor_family',
+                sTitle='Donor family',
+                choices=donor_families(),
+            ),
+            Col(self, 'count_borrowed', sTitle='# borrowed affixes', input_size='mini'),
             Col(self, 'area', choices=get_distinct_values(Pair.area)),
-            ReliabilityCol(self, 'reliability'),
             LinkCol(self, 'details', model_col=Pair.name),
         ]
 

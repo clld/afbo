@@ -53,6 +53,12 @@ class AfboValue(CustomModelMixin, Value):
         return '%s from %s' % (self.numeric, self.pair.donor)
 
 
+@implementer(interfaces.ILanguage)
+class AfboLanguage(CustomModelMixin, Language):
+    pk = Column(Integer, ForeignKey('language.pk'), primary_key=True)
+    family = Column(Unicode)
+
+
 @implementer(interfaces.IParameter)
 class AffixFunction(CustomModelMixin, Parameter):
     pk = Column(Integer, ForeignKey('parameter.pk'), primary_key=True)

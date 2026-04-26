@@ -1,5 +1,3 @@
-from clld_markdown_plugin import markdown
-
 from clld.db.meta import DBSession
 from clld.db.models import common
 
