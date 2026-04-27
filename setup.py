@@ -19,6 +19,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'clld>=9.2.2',
+        'clld-markdown-plugin',
         'clldmpg>=4.2',
         'sqlalchemy',
         'waitress',
