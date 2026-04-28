@@ -30,7 +30,7 @@ def main(args):  # pragma: no cover
         name=args.cldf.properties['dc:title'],
         description="",
         contact="frank.seifart@cnrs.fr",
-        publisher_name="MPI EVA",
+        publisher_name="Max Planck Institute for Evolutionary Anthropology",
         publisher_place="Leipzig",
         publisher_url="https://www.eva.mpg.de/",
         license="http://creativecommons.org/licenses/by/4.0/",
