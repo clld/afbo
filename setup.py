@@ -21,6 +21,7 @@ setup(
         'clld>=11.5.5',
         'clld-markdown-plugin>=1',
         'clldmpg>=4.3',
+        'psycopg2',
         'sqlalchemy',
         'waitress',
     ],

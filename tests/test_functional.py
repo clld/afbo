@@ -1,4 +1,7 @@
 import pytest
+from sqlalchemy.util import deprecations
+
+deprecations.SILENCE_UBER_WARNING = True
 
 
 @pytest.mark.parametrize(
