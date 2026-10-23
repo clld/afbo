@@ -20,7 +20,7 @@ setup(
     install_requires=[
         'clld>=11.5.5',
         'clld-markdown-plugin>=1',
-        'clldmpg>=4.3',
+        'clldmpg>=4.5',
         'psycopg2',
         'sqlalchemy',
         'waitress',
