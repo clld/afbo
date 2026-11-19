@@ -34,7 +34,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/clld/abvd"
+Homepage = "https://github.com/clld/afbo"
 
 [project.optional-dependencies]
 initdb = [
