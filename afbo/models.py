@@ -50,7 +50,7 @@ class AfboValue(CustomModelMixin, Value):
     numeric = Column(Integer)
 
     def format(self):
-        return '%s from %s' % (self.numeric, self.pair.donor)
+        return f'{self.numeric} from {self.pair.donor}'
 
 
 @implementer(interfaces.ILanguage)

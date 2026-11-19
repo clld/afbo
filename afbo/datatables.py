@@ -93,7 +93,7 @@ def donor_families():
 
 class Pairs(DataTable):
     def __init__(self, *args, **kw):
-        super(Pairs, self).__init__(*args, **kw)
+        super().__init__(*args, **kw)
         self.donor = aliased(AfboLanguage)
         self.recipient = aliased(AfboLanguage)
 
@@ -197,7 +197,7 @@ class waabValues(Values):
                     sTitle="Languages", get_obj=lambda i: i.pair, model_col=Pair.name),
                 ValueCol(
                     self, 'value',
-                    sTitle='number of borrowed %s affixes' % self.parameter.name),
+                    sTitle=f'number of borrowed {self.parameter.name} affixes'),
                 LinkToMapCol(self, 'm', get_obj=lambda i: i.pair.recipient)]
         if self.pair:
             return [

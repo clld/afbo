@@ -2,7 +2,8 @@ from clld.db.meta import DBSession
 from clld.db.models import common
 from clld.cliutil import Data, bibtex2source
 from clld.lib import bibtex
-from nameparser import HumanName
+
+import nameparser
 from pycldf.media import MediaTable
 from clldutils.markup import iter_markdown_sections
 
@@ -18,7 +19,7 @@ def main(args):  # pragma: no cover
     files = {f.id: f for f in MediaTable(args.cldf)}
     about = []
     for i, (level, title, text) in enumerate(iter_markdown_sections(files['about'].read())):
-        if level == 2:
+        if level == 2:  # noqa: PLR2004
             about.append((i + 1, title.lstrip('#').strip(), text))
 
     data = Data()
@@ -42,7 +43,8 @@ def main(args):  # pragma: no cover
     )
     contrib = common.Contribution(id='afbo')
     for i, name in enumerate(args.cldf.properties['dc:creator'].split(' and ')):
-        cid = HumanName(name.strip()).last.lower() + HumanName(name.strip()).first.lower()[0]
+        hname = nameparser.parse(name.strip())
+        cid = hname.family.lower() + hname.given.lower()[0]
         co = data.add(common.Contributor, cid, id=cid, name=name.strip())
         common.Editor(dataset=ds, ord=i, contributor=co)
     DBSession.add(ds)
@@ -86,8 +88,8 @@ def main(args):  # pragma: no cover
                 common.Identifier,
                 (row['Glottocode'], 'glottolog'),
                 id=row['Glottocode'], type='glottolog')
-        DBSession.add(
-            common.LanguageIdentifier(language_pk=data['AfboLanguage'][row['ID']].pk, identifier=id_))
+        DBSession.add(common.LanguageIdentifier(
+            language_pk=data['AfboLanguage'][row['ID']].pk, identifier=id_))
         for iso in row['ISO639P3code']:
             id_ = data['Identifier'].get((iso, 'iso639-3'))
             if not id_:
@@ -95,8 +97,8 @@ def main(args):  # pragma: no cover
                     common.Identifier,
                     (iso, 'iso639-3'),
                     id=iso, type='iso639-3')
-            DBSession.add(
-                common.LanguageIdentifier(language_pk=data['AfboLanguage'][row['ID']].pk, identifier=id_))
+            DBSession.add(common.LanguageIdentifier(
+                language_pk=data['AfboLanguage'][row['ID']].pk, identifier=id_))
 
     for row in args.cldf.iter_rows('donor_recipient_pairs.csv'):
         for srcid in row['Source']:
@@ -138,10 +140,10 @@ def prime_cache(args):  # pragma: no cover
         for i in range(_min, _max + 1):
             colors[i] = color
 
-    for l in DBSession.query(common.Language) \
+    for lg in DBSession.query(common.Language) \
             .join(models.Pair, common.Language.pk == models.Pair.recipient_pk):
-        l.update_jsondata(color=colors[max(p.count_borrowed for p in l.donor_assocs)])
+        lg.update_jsondata(color=colors[max(p.count_borrowed for p in lg.donor_assocs)])
 
-    for l in DBSession.query(common.Language):
-        if not l.donor_assocs:
-            l.update_jsondata(color='ffffff')
+    for lg in DBSession.query(common.Language):
+        if not lg.donor_assocs:
+            lg.update_jsondata(color='ffffff')

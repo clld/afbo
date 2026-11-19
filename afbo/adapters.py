@@ -4,8 +4,7 @@ from clld.interfaces import IParameter, ILanguage, IIndex
 
 class GeoJsonAffixFunction(GeoJsonParameter):
     def feature_properties(self, ctx, req, valueset):
-        return {'label': '%s: %s' % (
-            valueset.language, ', '.join(v.format() for v in valueset.values))}
+        return {'label': f"{valueset.language}: {', '.join(v.format() for v in valueset.values)}"}
 
 
 class GeoJsonAfboLanguages(GeoJsonLanguages):

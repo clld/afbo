@@ -20,9 +20,9 @@ class LanguagesMap(Map):
         values = []
         for _min, _max, color in COLOR_MAP:
             if not _max:
-                label = '%s or more' % _min
+                label = f'{_min} or more'
             elif not _min:
-                label = '%s' % _max
+                label = f'{_max}'
             else:
                 label = '-'.join(map(str, [_min, _max]))
 
